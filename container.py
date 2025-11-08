@@ -5,7 +5,6 @@ from repositories.user_repository import UserRepository
 from repositories.vacation_entitlement_repository import VacationEntitlementRepository
 from repositories.vacation_record_repository import VacationRecordRepository
 
-
 class Container:
     def __init__(self):
         self._db_session: Optional[Session] = None
@@ -16,7 +15,6 @@ class Container:
         self._record_repository: Optional[VacationRecordRepository] = None
 
     def init_db(self, db_session: Session):
-        """Pozovi iz app.py ili testova"""
         self._db_session = db_session
 
     @property
