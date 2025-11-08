@@ -6,3 +6,4 @@ Flask-Seeder
 dependency-injector
 pydantic
 flask-injector
+pydantic[email]
