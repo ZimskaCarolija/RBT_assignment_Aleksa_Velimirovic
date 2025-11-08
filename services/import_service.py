@@ -36,14 +36,10 @@ class ImportService:
                     email = row['email']
                     password = row['password']
 
-                    # Generate full_name from email
-                    full_name = email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
-
                     try:
                         create_req = CreateUserRequest(
                             email=email,
                             password=password,
-                            full_name=full_name
                         )
                     except Exception as e:
                         errors.append(f"Row {idx + 1}: Invalid data - {str(e)}")
@@ -115,21 +111,16 @@ class ImportService:
                     year = row['year']
                     days = row['days']
 
-                    # Find user
                     user = container.user_repository.get_by_email(email)
                     if not user:
                         errors.append(f"Row {idx + 1}: User not found - {email}")
                         continue
 
-                    # Validation using repositories
                     if record_repo.has_overlap(user.id, start_date, end_date):
                         errors.append(f"Row {idx + 1}: Overlap for {email}: {start_date} - {end_date}")
                         continue
 
-                    entitlement = entitlement_repo.get_by_user_year(user.id, year)
-                    total_days = entitlement.total_days if entitlement else 0
-                    used_days = record_repo.get_used_days_in_year(user.id, year)
-                    available_days = max(0, total_days - used_days)
+                    available_days = self.vacation_service.get_available_days(user.id,year)
 
                     if days > available_days:
                         errors.append(
@@ -138,7 +129,6 @@ class ImportService:
                         )
                         continue
 
-                    # Use VacationService (recommended) or direct repo
                     try:
                         req = CreateVacationRequest(
                             start_date=start_date,

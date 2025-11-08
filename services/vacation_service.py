@@ -102,3 +102,19 @@ class VacationService:
             self.record_repo.session.rollback()
             logger.error(f"error while creating vacation : {e}")
             raise ValueError("error while creating vacation")
+        
+    def get_available_days(self, user_id: int, year: int) -> int:
+            try:
+                entitlement = self.entitlement_repo.get_by_user_year(user_id, year)
+                if not entitlement:
+                    logger.warning(f"No entitlement found for user {user_id} in year {year}")
+                    return 0
+                total_days = entitlement.total_days
+                used_days = self.record_repo.get_used_days_in_year(user_id, year)
+                available_days = max(0, total_days - used_days)
+                logger.debug(f"Available days for user {user_id} in {year}: {available_days} "
+                            f"(total: {total_days}, used: {used_days})")
+                return available_days
+            except Exception as e:
+                logger.error(f"Error calculating available days for user {user_id}, year {year}: {e}", exc_info=True)
+                raise ValueError("Failed to calculate available vacation days") from e
