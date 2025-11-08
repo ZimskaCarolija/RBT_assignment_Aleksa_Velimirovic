@@ -1,5 +1,4 @@
 from datetime import date
-from container import container
 from dto import (
     VacationSummaryDTO,
     VacationRecordDTO,

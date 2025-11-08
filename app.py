@@ -13,7 +13,7 @@ from utils.response import ApiResponse
 import os
 import logging
 from flask_injector import FlaskInjector
-
+from container import container
 load_dotenv()
 env = ProductionConfig
 if os.getenv("FLASK_ENV") == "development":
@@ -26,10 +26,6 @@ def create_app(config_class=env):
     db.init_app(app)
     Migrate(app, db)
     FlaskInjector(app=app, modules=[container.bind_services])
-    from container import container
-    with app.app_context():
-        container.init_db(db.session)
-        app.container = container
 
     register_commands(app)
 
