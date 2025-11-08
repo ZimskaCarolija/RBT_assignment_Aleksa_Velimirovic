@@ -1,0 +1,5 @@
+flask
+Flask-Migrate
+python-dotenv
+psycopg2-binary
+Flask-Seeder
