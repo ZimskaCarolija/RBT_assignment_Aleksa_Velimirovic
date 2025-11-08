@@ -4,6 +4,7 @@ from repositories.role_repository import RoleRepository
 from repositories.user_repository import UserRepository
 from repositories.vacation_entitlement_repository import VacationEntitlementRepository
 from repositories.vacation_record_repository import VacationRecordRepository
+from services.vacation_service import VacationService
 
 class Container:
     def __init__(self):
@@ -13,6 +14,7 @@ class Container:
         self._user_repository: Optional[UserRepository] = None
         self._entitlement_repository: Optional[VacationEntitlementRepository] = None
         self._record_repository: Optional[VacationRecordRepository] = None
+        self._vacation_service = None
 
     def init_db(self, db_session: Session):
         self._db_session = db_session
@@ -47,6 +49,12 @@ class Container:
         self._user_repository = None
         self._entitlement_repository = None
         self._record_repository = None
+
+    @property
+    def vacation_service(self) -> VacationService:
+        if self._vacation_service is None:
+            self._vacation_service = VacationService()
+        return self._vacation_service
 
 
 container = Container()
