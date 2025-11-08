@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from commands import register_commands
 from routes.vacation import bp as vacation_bp 
 from routes.users import bp as users_bp
+from routes.imports import bp as import_bp
 from utils.response import ApiResponse 
 import os
 import logging
@@ -20,7 +21,7 @@ if os.getenv("FLASK_ENV") == "development":
 def create_app(config_class=env):
     app = Flask(__name__)
     app.config.from_object(config_class)
-
+    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
     db.init_app(app)
     Migrate(app, db)
 
@@ -33,7 +34,8 @@ def create_app(config_class=env):
 
     app.register_blueprint(vacation_bp)
     app.register_blueprint(users_bp)
-    
+    app.register_blueprint(import_bp)
+       
     @app.errorhandler(404)
     def not_found(e):
         return ApiResponse.error("Route not found", 404)

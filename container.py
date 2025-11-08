@@ -1,11 +1,12 @@
 from typing import Optional
 from sqlalchemy.orm import Session
-from repositories.role_repository import RoleRepository
-from repositories.user_repository import UserRepository
-from repositories.vacation_entitlement_repository import VacationEntitlementRepository
-from repositories.vacation_record_repository import VacationRecordRepository
-from services.vacation_service import VacationService
-
+from repositories import RoleRepository
+from repositories import UserRepository
+from repositories import VacationEntitlementRepository
+from repositories import VacationRecordRepository
+from services import VacationService
+from services import UserService
+from services import ImportService
 class Container:
     def __init__(self):
         self._db_session: Optional[Session] = None
@@ -55,6 +56,18 @@ class Container:
         if self._vacation_service is None:
             self._vacation_service = VacationService()
         return self._vacation_service
+    
+    @property
+    def user_service(self) -> UserService:
+        if self._user_service is None:
+            self._user_service = UserService()
+        return self._user_service
+    
+    @property
+    def import_service(self) -> ImportService:
+        if self._import_service is None:
+            self._import_service = ImportService()
+        return self._import_service
 
 
 container = Container()

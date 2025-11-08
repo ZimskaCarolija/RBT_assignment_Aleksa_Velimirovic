@@ -7,4 +7,4 @@ from .update_user_request import UpdateUserRequest
 from .user_response import UserResponse
 from .vacation_create import CreateVacationRequest
 from .vacation_record import VacationRecordDTO
-
+from .Import_result import ImportResult

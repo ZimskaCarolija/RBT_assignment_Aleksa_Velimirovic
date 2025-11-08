@@ -15,3 +15,15 @@ class VacationEntitlementRepository:
             )
             .first()
         )
+    def create_vacation_entitlement(
+            self,
+            user_id: int,
+            year: int,
+            total_days: int
+        ) -> VacationEntitlement:
+            entitlement = VacationEntitlement(
+                user_id=user_id,
+                year=year,
+                total_days=total_days
+            )
+            return entitlement

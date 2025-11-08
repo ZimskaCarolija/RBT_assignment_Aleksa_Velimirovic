@@ -22,3 +22,11 @@ class UserRepository(BaseRepository[User]):
             .filter(User.password_hash == password_hash)
             .first()
         )
+    def get_by_email(
+        self, email: str
+    ) -> Optional[User]:
+        return (
+            self.session.query(User)
+            .filter(User.email == email)
+            .first()
+        )
