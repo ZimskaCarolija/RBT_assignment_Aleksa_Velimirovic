@@ -19,6 +19,9 @@ def create_app(config_class=env):
     db.init_app(app)
     Migrate(app, db)
     register_commands(app) 
+    from container import container
+    container.init_db(db.session)
+    app.container = container
 
     @app.route('/')
     def index():
