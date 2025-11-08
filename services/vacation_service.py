@@ -13,9 +13,9 @@ from sqlalchemy.exc import IntegrityError
 logger = logging.getLogger(__name__)
 
 class VacationService:
-    def __init__(self):
-        self.record_repo = container.record_repository
-        self.entitlement_repo = container.entitlement_repository
+    def __init__(self, record_repo, entitlement_repo):
+        self.record_repo = record_repo
+        self.entitlement_repo = entitlement_repo
 
     def get_vacation_summary(self, user_id: int, year: int | None = None) -> VacationSummaryDTO:
         if year is None:
