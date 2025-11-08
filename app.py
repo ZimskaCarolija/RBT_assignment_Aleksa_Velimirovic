@@ -12,6 +12,7 @@ from routes.imports import bp as import_bp
 from utils.response import ApiResponse 
 import os
 import logging
+from flask_injector import FlaskInjector
 
 load_dotenv()
 env = ProductionConfig
@@ -24,7 +25,7 @@ def create_app(config_class=env):
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
     db.init_app(app)
     Migrate(app, db)
-
+    FlaskInjector(app=app, modules=[container.bind_services])
     from container import container
     with app.app_context():
         container.init_db(db.session)

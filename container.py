@@ -1,73 +1,52 @@
-from typing import Optional
-from sqlalchemy.orm import Session
-from repositories import RoleRepository
-from repositories import UserRepository
-from repositories import VacationEntitlementRepository
-from repositories import VacationRecordRepository
-from services import VacationService
-from services import UserService
-from services import ImportService
+from models import db
+from flask_injector import FlaskInjector
+from injector import singleton
+
+
+from repositories.user_repository import UserRepository
+from repositories.role_repository import RoleRepository
+from repositories.vacation_record_repository import VacationRecordRepository
+from repositories.vacation_entitlement_repository import VacationEntitlementRepository
+
+
+from services.user_service import UserService
+from services.vacation_service import VacationService
+from services.import_service import ImportService
+
 class Container:
     def __init__(self):
-        self._db_session: Optional[Session] = None
+        self.db_session = db.session
 
-        self._role_repository: Optional[RoleRepository] = None
-        self._user_repository: Optional[UserRepository] = None
-        self._entitlement_repository: Optional[VacationEntitlementRepository] = None
-        self._record_repository: Optional[VacationRecordRepository] = None
-        self._vacation_service = None
+        self.user_repository = UserRepository(self.db_session)
+        self.role_repository = RoleRepository(self.db_session)
+        self.vacation_record_repository = VacationRecordRepository(self.db_session)
+        self.vacation_entitlement_repository = VacationEntitlementRepository(self.db_session)
 
-    def init_db(self, db_session: Session):
-        self._db_session = db_session
+        self.user_service = UserService(
+            user_repo=self.user_repository,
+            role_repo=self.role_repository
+        )
+        self.vacation_service = VacationService(
+            record_repo=self.vacation_record_repository,
+            entitlement_repo=self.vacation_entitlement_repository
+        )
 
-    @property
-    def role_repository(self) -> RoleRepository:
-        if self._role_repository is None:
-            self._role_repository = RoleRepository(self._db_session)
-        return self._role_repository
+        self.import_service = ImportService(
+            session=self.db_session,
+            user_service=self.user_service,
+            vacation_service=self.vacation_service,
+            user_repository=self.user_repository,
+            vacation_record_repository=self.vacation_record_repository,
+            vacation_entitlement_repository=self.vacation_entitlement_repository
+        )
 
-    @property
-    def user_repository(self) -> UserRepository:
-        if self._user_repository is None:
-            self._user_repository = UserRepository(self._db_session)
-        return self._user_repository
-
-    @property
-    def entitlement_repository(self) -> VacationEntitlementRepository:
-        if self._entitlement_repository is None:
-            self._entitlement_repository = VacationEntitlementRepository(self._db_session)
-        return self._entitlement_repository
-
-    @property
-    def record_repository(self) -> VacationRecordRepository:
-        if self._record_repository is None:
-            self._record_repository = VacationRecordRepository(self._db_session)
-        return self._record_repository
-
-    def reset(self):
-        self._db_session = None
-        self._role_repository = None
-        self._user_repository = None
-        self._entitlement_repository = None
-        self._record_repository = None
-
-    @property
-    def vacation_service(self) -> VacationService:
-        if self._vacation_service is None:
-            self._vacation_service = VacationService()
-        return self._vacation_service
-    
-    @property
-    def user_service(self) -> UserService:
-        if self._user_service is None:
-            self._user_service = UserService()
-        return self._user_service
-    
-    @property
-    def import_service(self) -> ImportService:
-        if self._import_service is None:
-            self._import_service = ImportService()
-        return self._import_service
-
+    def bind_services(self, binder):
+        binder.bind(UserService, to=self.user_service, scope=singleton)
+        binder.bind(VacationService, to=self.vacation_service, scope=singleton)
+        binder.bind(ImportService, to=self.import_service, scope=singleton)
+        binder.bind(UserRepository, to=self.user_repository, scope=singleton)
+        binder.bind(RoleRepository, to=self.role_repository, scope=singleton)
+        binder.bind(VacationRecordRepository, to=self.vacation_record_repository, scope=singleton)
+        binder.bind(VacationEntitlementRepository, to=self.vacation_entitlement_repository, scope=singleton)
 
 container = Container()

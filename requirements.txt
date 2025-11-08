@@ -5,3 +5,4 @@ psycopg2-binary
 Flask-Seeder
 dependency-injector
 pydantic
+flask-injector
