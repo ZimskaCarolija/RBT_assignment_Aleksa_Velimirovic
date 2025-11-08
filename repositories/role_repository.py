@@ -12,7 +12,6 @@ class RoleRepository:
     def create(self, name: str) -> Role:
         role = Role(name=name)
         self.session.add(role)
-        self.session.commit()
         return role
 
     def get_all(self):
