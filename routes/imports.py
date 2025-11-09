@@ -4,6 +4,7 @@ from services.import_service import ImportService
 from werkzeug.utils import secure_filename
 from utils.response import ApiResponse
 from utils.file_helper import save_uploaded_file
+from middleware.auth import login_required, admin_required
 import os
 import logging
 
@@ -12,6 +13,8 @@ logger = logging.getLogger(__name__)
 bp = Blueprint('import', __name__, url_prefix='/import')
 
 @bp.route('/users', methods=['POST'])
+@login_required
+@admin_required
 @inject
 def import_users(import_service: ImportService):
     try:
@@ -33,6 +36,8 @@ def import_users(import_service: ImportService):
         return ApiResponse.error(f"Server error: {str(e)}", 500)
 
 @bp.route('/vacations', methods=['POST'])
+@login_required
+@admin_required
 @inject
 def import_vacations(import_service: ImportService):
     try:
@@ -54,6 +59,8 @@ def import_vacations(import_service: ImportService):
         return ApiResponse.error(f"Server error: {str(e)}", 500)
 
 @bp.route('/entitlements', methods=['POST'])
+@login_required
+@admin_required
 @inject
 def import_entitlements(import_service: ImportService):
     try:

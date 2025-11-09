@@ -3,6 +3,7 @@ from flask_injector import inject
 from services.user_service import UserService
 from dto import CreateUserRequest, UpdateUserRequest
 from utils.response import ApiResponse
+from middleware.auth import login_required, admin_required, admin_or_owner_required
 import logging
 
 logger = logging.getLogger(__name__)
@@ -11,6 +12,8 @@ bp = Blueprint('users', __name__, url_prefix='/users')
 
 
 @bp.route('', methods=['POST'])
+@login_required
+@admin_or_owner_required
 @inject
 def create_user(user_service: UserService):
     """
@@ -31,6 +34,8 @@ def create_user(user_service: UserService):
 
 
 @bp.route('/<int:user_id>', methods=['GET'])
+@login_required
+@admin_or_owner_required
 @inject
 def get_user(user_id: int, user_service: UserService):
     """
@@ -47,6 +52,8 @@ def get_user(user_id: int, user_service: UserService):
 
 
 @bp.route('', methods=['GET'])
+@login_required
+@admin_or_owner_required
 @inject
 def get_users(user_service: UserService):
     """
@@ -64,6 +71,8 @@ def get_users(user_service: UserService):
 
 
 @bp.route('/<int:user_id>', methods=['PATCH'])
+@login_required
+@admin_or_owner_required
 @inject
 def update_user(user_id: int, user_service: UserService):
     try:
@@ -80,6 +89,8 @@ def update_user(user_id: int, user_service: UserService):
 
 
 @bp.route('/<int:user_id>', methods=['DELETE'])
+@login_required
+@admin_or_owner_required
 @inject
 def delete_user(user_id: int, user_service: UserService):
     try:
