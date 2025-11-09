@@ -6,7 +6,8 @@ from repositories.user_repository import UserRepository
 from repositories.role_repository import RoleRepository
 from dto import CreateUserRequest, UpdateUserRequest, UserResponse
 from utils.password import hash_password
-from datetime import datetime,timezone
+from datetime import datetime, timezone
+from constants import RoleNames
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,11 +20,11 @@ class UserService:
         self.session = user_repo.session
 
     def _ensure_employee_role(self) -> Role:
-        role = self.role_repo.get_by_name("Employee")
+        role = self.role_repo.get_by_name(RoleNames.EMPLOYEE)
         if not role:
-            role = self.role_repo.create("Employee")
+            role = self.role_repo.create(RoleNames.EMPLOYEE)
             self.session.flush()
-            logger.info("Created default 'Employee' role")
+            logger.info(f"Created default '{RoleNames.EMPLOYEE}' role")
         return role
 
     def create_user(self, data: CreateUserRequest) -> UserResponse:
