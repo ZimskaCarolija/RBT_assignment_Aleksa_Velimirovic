@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask
 from flask_migrate import Migrate
 from models import db
@@ -22,9 +21,16 @@ if os.getenv("FLASK_ENV") == "development":
 def create_app(config_class=env):
     app = Flask(__name__)
     app.config.from_object(config_class)
+    if not app.config.get("UPLOAD_FOLDER"):
+        app.config["UPLOAD_FOLDER"] = os.path.join(app.root_path, "uploads")
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
     db.init_app(app)
     Migrate(app, db)
+
+    @app.before_request
+    def before_request():
+        from flask import g
+        g.db_session = db.session
 
     app.register_blueprint(vacation_bp)
     app.register_blueprint(users_bp)

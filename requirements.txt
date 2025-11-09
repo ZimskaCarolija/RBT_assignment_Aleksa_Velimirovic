@@ -7,3 +7,6 @@ dependency-injector
 pydantic
 flask-injector
 pydantic[email]
+pytest
+pytest-flask
+pytest-cov

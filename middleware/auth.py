@@ -1,12 +1,11 @@
-# middleware/auth.py
 import base64
 from functools import wraps
-from flask import request
+from flask import request, g
 from typing import Tuple, Optional
 from models import db
 from repositories.user_repository import UserRepository
 from utils.response import ApiResponse
-from utils.password import verify_password  # Ovo koristimo
+from constants import RoleIds
 
 def decode_basic_auth(auth_header: str) -> Optional[Tuple[str, str]]:
     """
@@ -34,13 +33,13 @@ def login_required(f):
         
         email, password = credentials
     
-        user_repo = UserRepository(db.session)
+        user_repo = UserRepository(g.db_session)
         user = user_repo.get_by_email(email)
         
         if not user:
             return ApiResponse.error('Invalid credentials - User not found', 401)
         
-        if not verify_password(password, user.password):
+        if not user.check_password(password):
             return ApiResponse.error('Invalid credentials - Wrong password', 401)
         
         request.current_user = user
@@ -56,7 +55,7 @@ def admin_required(f):
         if not hasattr(request, 'current_user'):
             return ApiResponse.error('Authentication required. Please authenticate first using login_required middleware', 401)
         
-        user_repo = UserRepository(db.session)
+        user_repo = UserRepository(g.db_session)
         current_user_id = request.current_user.id
         
         if not user_repo.is_admin(current_user_id):
@@ -69,11 +68,10 @@ def admin_required(f):
 def admin_or_owner_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        # Prvo proveri da li je korisnik ulogovan
         if not hasattr(request, 'current_user'):
             return ApiResponse.error('Authentication required. Please authenticate first using login_required middleware', 401)
         
-        user_repo = UserRepository(db.session)
+        user_repo = UserRepository(g.db_session)
         current_user_id = request.current_user.id
         
         target_user_id = kwargs.get('user_id')

@@ -13,7 +13,7 @@ bp = Blueprint('users', __name__, url_prefix='/users')
 
 @bp.route('', methods=['POST'])
 @login_required
-@admin_or_owner_required
+@admin_required
 @inject
 def create_user(user_service: UserService):
     """
@@ -45,7 +45,7 @@ def get_user(user_id: int, user_service: UserService):
         user = user_service.get_user(user_id)
         if not user:
             return ApiResponse.error("User not found", 404)
-        return ApiResponse.success(user.model_dump(),201)
+        return ApiResponse.success(user.model_dump(), 200)
     except Exception as e:
         logger.error(f"Error fetching user {user_id}: {e}", exc_info=True)
         return ApiResponse.error("Internal server error", 500)
@@ -53,7 +53,7 @@ def get_user(user_id: int, user_service: UserService):
 
 @bp.route('', methods=['GET'])
 @login_required
-@admin_or_owner_required
+@admin_required
 @inject
 def get_users(user_service: UserService):
     """
@@ -64,7 +64,7 @@ def get_users(user_service: UserService):
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
         users = user_service.get_all_users(role_name=role, page=page, per_page=per_page)
-        return ApiResponse.success([u.model_dump() for u in users],201)
+        return ApiResponse.success([u.model_dump() for u in users], 200)
     except Exception as e:
         logger.error(f"Error listing users: {e}", exc_info=True)
         return ApiResponse.error("Internal server error", 500)
@@ -85,19 +85,4 @@ def update_user(user_id: int, user_service: UserService):
         return ApiResponse.error(str(e), 400)
     except Exception as e:
         logger.error(f"Error updating user {user_id}: {e}", exc_info=True)
-        return ApiResponse.error("Internal server error", 500)
-
-
-@bp.route('/<int:user_id>', methods=['DELETE'])
-@login_required
-@admin_or_owner_required
-@inject
-def delete_user(user_id: int, user_service: UserService):
-    try:
-        user_service.soft_delete_user(user_id)
-        return ApiResponse.success({"message": "User deleted"})
-    except ValueError as e:
-        return ApiResponse.error(str(e), 404)
-    except Exception as e:
-        logger.error(f"Error deleting user {user_id}: {e}", exc_info=True)
         return ApiResponse.error("Internal server error", 500)
