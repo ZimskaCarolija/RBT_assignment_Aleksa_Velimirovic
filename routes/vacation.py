@@ -9,6 +9,7 @@ from dto import (
     CreateEntitlementRequest
 )
 from utils.response import ApiResponse
+from middleware.auth import login_required, admin_required, admin_or_owner_required
 from typing import Optional
 from datetime import datetime
 import logging
@@ -19,6 +20,8 @@ bp = Blueprint('vacation', __name__, url_prefix='/vacation')
 
 
 @bp.route('/users/<int:user_id>/summary', methods=['GET'])
+@login_required
+@admin_or_owner_required
 @inject
 def vacation_summary(user_id: int, vacation_service: VacationService):
     """
@@ -39,6 +42,8 @@ def vacation_summary(user_id: int, vacation_service: VacationService):
 
 
 @bp.route('/users/<int:user_id>/check', methods=['POST'])
+@login_required
+@admin_or_owner_required
 @inject
 def check_overlap(user_id: int, vacation_service: VacationService):
     """
@@ -63,6 +68,8 @@ def check_overlap(user_id: int, vacation_service: VacationService):
 
 
 @bp.route('/users/<int:user_id>/create', methods=['POST'])
+@login_required
+@admin_or_owner_required
 @inject
 def create_vacation_record(user_id: int, vacation_service: VacationService):
     """
@@ -84,6 +91,8 @@ def create_vacation_record(user_id: int, vacation_service: VacationService):
         return ApiResponse.error("Error", 500)
     
 @bp.route('/users/<int:user_id>/entitlements', methods=['POST'])
+@login_required
+@admin_or_owner_required
 @inject
 def create_entitlement(user_id: int, vacation_service: VacationService):
     """
@@ -109,6 +118,8 @@ def create_entitlement(user_id: int, vacation_service: VacationService):
         logger.error(f"Error creating entitlement: {e}", exc_info=True)
         return ApiResponse.error("Internal server error", 500)
 @bp.route('/users/<int:user_id>/records', methods=['GET'])
+@login_required
+@admin_or_owner_required
 @inject
 def get_vacation_records(user_id: int, vacation_service: VacationService):
     """
