@@ -6,7 +6,7 @@ from repositories.user_repository import UserRepository
 from repositories.role_repository import RoleRepository
 from dto import CreateUserRequest, UpdateUserRequest, UserResponse
 from utils.password import hash_password
-from datetime import datetime
+from datetime import datetime,timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,12 +19,11 @@ class UserService:
         self.session = user_repo.session
 
     def _ensure_employee_role(self) -> Role:
-        """Osigurava da postoji 'employee' rola."""
-        role = self.role_repo.get_by_name("employee")
+        role = self.role_repo.get_by_name("Employee")
         if not role:
-            role = self.role_repo.create("employee")
+            role = self.role_repo.create("Employee")
             self.session.flush()
-            logger.info("Created default 'employee' role")
+            logger.info("Created default 'Employee' role")
         return role
 
     def create_user(self, data: CreateUserRequest) -> UserResponse:
@@ -36,7 +35,7 @@ class UserService:
 
         user = User(
             email=data.email,
-            password_hash=password_hash,
+            password=password_hash,
             full_name=data.full_name,
             role_id=employee_role.id
         )
@@ -81,7 +80,7 @@ class UserService:
         if data.password:
             user.password_hash = hash_password(data.password)
 
-        user.updated_at = datetime.now(datetime.timezone.utc)
+        user.updated_at = datetime.now(timezone.utc)
         self.session.flush()
 
         logger.info(f"Updated user: {user.id}")

@@ -14,8 +14,8 @@ from services.vacation_service import VacationService
 from services.import_service import ImportService
 
 class Container:
-    def __init__(self):
-        self.db_session = db.session
+    def __init__(self,db_session):
+        self.db_session = db_session
 
         self.user_repository = UserRepository(self.db_session)
         self.role_repository = RoleRepository(self.db_session)
@@ -48,5 +48,3 @@ class Container:
         binder.bind(RoleRepository, to=self.role_repository, scope=singleton)
         binder.bind(VacationRecordRepository, to=self.vacation_record_repository, scope=singleton)
         binder.bind(VacationEntitlementRepository, to=self.vacation_entitlement_repository, scope=singleton)
-
-container = Container()

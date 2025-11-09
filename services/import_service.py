@@ -67,11 +67,8 @@ class ImportService:
                 try:
                     self.session.flush()
                 except Exception as e:
-                    self.session.rollback()
                     errors.append(f"DB error in chunk (rows {start+1}-{min(start+chunk_size, total_rows)}): {e}")
                     continue
-
-            self.session.commit()
 
             result.imported = imported
             result.errors = errors[:50]
@@ -137,11 +134,8 @@ class ImportService:
                 try:
                     self.session.flush()
                 except Exception as e:
-                    self.session.rollback()
                     errors.append(f"Chunk error (rows {start+1}-{min(start+chunk_size, total_rows)}): {e}")
                     continue
-
-            self.session.commit()
 
             result.imported = imported
             result.errors = errors[:50]
@@ -149,7 +143,6 @@ class ImportService:
             result.message = f"Imported {imported} vacation records."
 
         except Exception as e:
-            self.session.rollback()
             result.success = False
             result.message = f"Import failed: {str(e)}"
             logger.error(f"Vacation import error: {e}", exc_info=True)
@@ -179,10 +172,7 @@ class ImportService:
                     try:
                         existing = self.vacation_entitlement_repository.get_by_user_year(user.id, year)
                         if existing:
-                            if existing.total_days != total_days:
-                                existing.total_days = total_days
-                                existing.updated_at = datetime.now(datetime.timezone.utc)
-                            imported += 1
+                            errors.append("Vacation days for user {email} already exists for selected year")
                         else:
                             entitlement = self.vacation_entitlement_repository.create_vacation_entitlement(
                                 user_id=user.id,
@@ -197,11 +187,8 @@ class ImportService:
                 try:
                     self.session.flush()
                 except Exception as e:
-                    self.session.rollback()
                     errors.append(f"Chunk error (rows {start+3}-{min(start+chunk_size+2, total_rows+2)}): {e}")
                     continue
-
-            self.session.commit()
 
             result.imported = imported
             result.errors = errors[:50]
@@ -209,7 +196,6 @@ class ImportService:
             result.message = f"Imported {imported} entitlements for year {year}."
 
         except Exception as e:
-            self.session.rollback()
             result.success = False
             result.message = f"Import failed: {str(e)}"
             logger.error(f"Entitlement import error: {e}", exc_info=True)

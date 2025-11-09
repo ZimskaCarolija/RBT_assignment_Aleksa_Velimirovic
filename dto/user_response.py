@@ -6,7 +6,7 @@ class UserResponse(BaseModel):
     id: int
     email: EmailStr
     full_name: Optional[str]
-    role_name: str
+    role_id: int
     created_at: datetime
     updated_at: Optional[datetime]
 
