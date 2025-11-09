@@ -9,5 +9,5 @@ class VacationRecordDTO(BaseModel):
     end_date: date
     days_count: int = Field(..., ge=1)
     note: Optional[str] = None
-    created_at: datetime
+    created_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True) 

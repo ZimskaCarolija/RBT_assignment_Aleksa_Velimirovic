@@ -14,7 +14,7 @@ bp = Blueprint('users', __name__, url_prefix='/users')
 @inject
 def create_user(user_service: UserService):
     """
-    POST /users
+    POST /user
     { "email": "velimirovicaleksa001@gmail.com", "password": "aleksa123456", "full_name":"aleksa velimirovic"}
     """
     try:
@@ -34,7 +34,7 @@ def create_user(user_service: UserService):
 @inject
 def get_user(user_id: int, user_service: UserService):
     """
-    GET /users/1
+    GET /user/1
     """
     try:
         user = user_service.get_user(user_id)
@@ -50,7 +50,7 @@ def get_user(user_id: int, user_service: UserService):
 @inject
 def get_users(user_service: UserService):
     """
-    GET /users?page=1&per_page=20
+    GET /user?page=1?per_page=20
     """
     try:
         role = request.args.get('role')

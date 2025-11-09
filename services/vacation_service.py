@@ -4,7 +4,8 @@ from dto import (
     VacationRecordDTO,
     VacationListResponse,
     CheckOverlapResponse,
-    CreateVacationRequest
+    CreateVacationRequest,
+    EntitlementDTO
 )
 import logging
 from sqlalchemy.exc import IntegrityError
@@ -15,6 +16,7 @@ class VacationService:
     def __init__(self, record_repo, entitlement_repo):
         self.record_repo = record_repo
         self.entitlement_repo = entitlement_repo
+        self.session = entitlement_repo.session
 
     def get_vacation_summary(self, user_id: int, year: int | None = None) -> VacationSummaryDTO:
         if year is None:
@@ -117,3 +119,20 @@ class VacationService:
             except Exception as e:
                 logger.error(f"Error calculating available days for user {user_id}, year {year}: {e}", exc_info=True)
                 raise ValueError("Failed to calculate available vacation days") from e
+            
+    def create_entitlement(self, user_id: int, year: int, total_days: int) -> EntitlementDTO:
+
+        existing = self.entitlement_repo.get_by_user_year(user_id, year)
+        if existing:
+            raise ValueError(f"Entitlement for user {user_id} in year {year} already exists")
+
+        entitlement = self.entitlement_repo.create_vacation_entitlement(
+            user_id=user_id,
+            year=year,
+            total_days=total_days
+        )
+        self.session.add(entitlement)
+        self.session.flush()
+
+        logger.info(f"Created entitlement: user={user_id}, year={year}, days={total_days}")
+        return EntitlementDTO.from_orm(entitlement)

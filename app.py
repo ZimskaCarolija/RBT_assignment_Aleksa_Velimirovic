@@ -13,7 +13,7 @@ from utils.response import ApiResponse
 import os
 import logging
 from flask_injector import FlaskInjector
-from container import container
+from container import Container
 load_dotenv()
 env = ProductionConfig
 if os.getenv("FLASK_ENV") == "development":
@@ -25,13 +25,14 @@ def create_app(config_class=env):
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
     db.init_app(app)
     Migrate(app, db)
-    FlaskInjector(app=app, modules=[container.bind_services])
-
-    register_commands(app)
 
     app.register_blueprint(vacation_bp)
     app.register_blueprint(users_bp)
     app.register_blueprint(import_bp)
+
+    container = Container(db_session=db.session)
+    FlaskInjector(app=app, modules=[container.bind_services])
+    register_commands(app)
        
     @app.errorhandler(404)
     def not_found(e):

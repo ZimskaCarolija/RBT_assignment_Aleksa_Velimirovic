@@ -68,3 +68,20 @@ class VacationRecordRepository(BaseRepository[VacationRecord]):
             .limit(per_page)
             .all()
         )
+
+    def count_by_date_range(
+        self,
+        user_id: int,
+        from_date: date,
+        to_date: date
+    ) -> int:
+        result = (
+            self.session.query(func.sum(VacationRecord.days_count))
+            .filter(
+                VacationRecord.user_id == user_id,
+                VacationRecord.start_date >= from_date,
+                VacationRecord.end_date <= to_date
+            )
+            .scalar()
+        )
+        return result or 0
