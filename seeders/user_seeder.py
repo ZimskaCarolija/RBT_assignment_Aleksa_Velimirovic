@@ -1,7 +1,7 @@
 from flask_seeder import Seeder
 from models import db
 from models.user import User
-from werkzeug.security import generate_password_hash
+from utils.password import hash_password
 
 class seed_users():
     def run(self):
@@ -19,7 +19,7 @@ class seed_users():
             if not existing_user:
                 user = User(
                     email=u["email"],
-                    password=generate_password_hash(u["password"]),
+                    password=hash_password(u["password"]),
                     full_name=u["full_name"],
                     role_id=u["role_id"]
                 )
