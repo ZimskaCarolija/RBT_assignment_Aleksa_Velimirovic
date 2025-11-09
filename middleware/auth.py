@@ -1,4 +1,3 @@
-# middleware/auth.py
 import base64
 from functools import wraps
 from flask import request
@@ -6,7 +5,6 @@ from typing import Tuple, Optional
 from models import db
 from repositories.user_repository import UserRepository
 from utils.response import ApiResponse
-from utils.password import verify_password  # Ovo koristimo
 
 def decode_basic_auth(auth_header: str) -> Optional[Tuple[str, str]]:
     """
@@ -40,7 +38,7 @@ def login_required(f):
         if not user:
             return ApiResponse.error('Invalid credentials - User not found', 401)
         
-        if not verify_password(password, user.password):
+        if not user.check_password(password):
             return ApiResponse.error('Invalid credentials - Wrong password', 401)
         
         request.current_user = user
@@ -51,6 +49,7 @@ def login_required(f):
     return decorated
 
 def admin_required(f):
+
     @wraps(f)
     def decorated(*args, **kwargs):
         if not hasattr(request, 'current_user'):
@@ -69,7 +68,6 @@ def admin_required(f):
 def admin_or_owner_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        # Prvo proveri da li je korisnik ulogovan
         if not hasattr(request, 'current_user'):
             return ApiResponse.error('Authentication required. Please authenticate first using login_required middleware', 401)
         
