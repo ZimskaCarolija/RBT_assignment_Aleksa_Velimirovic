@@ -1,26 +1,26 @@
+# utils/import_helper.py
 import pandas as pd
 import logging
 from datetime import datetime
+from typing import Tuple
 
 logger = logging.getLogger(__name__)
 
-def clean_user_import_file(file) -> pd.DataFrame:
+def clean_user_import_file(file_path: str) -> pd.DataFrame:
     """
-    Expects a file where each row contains:
-    email    password
-    Returns a cleaned DataFrame with columns: [email, password]
+    Vacation year,2019
+    Employee Email,Employee Password
+    user1@rbt.rs,Abc!@#$
+    ...
     """
     try:
-        if file.filename.endswith('.xlsx'):
-            df = pd.read_excel(file, header=None)
-        else:
-            df = pd.read_csv(file, header=None, sep=r'\s+', engine='python', on_bad_lines='skip')
+        df = load_dataframe(file_path)
 
         if df.empty:
             raise ValueError("File is empty")
-
-        if df.shape[1] < 2:
-            raise ValueError("Each row must contain email and password (2 columns)")
+        if df.shape[0] < 3:
+            raise ValueError("File must have at least 3 rows (header + data)")
+        df = df.iloc[2:].copy()
 
         df = df.iloc[:, :2].copy()
         df.columns = ['email', 'password']
@@ -28,125 +28,159 @@ def clean_user_import_file(file) -> pd.DataFrame:
         df['email'] = df['email'].astype(str).str.strip().str.lower()
         df['password'] = df['password'].astype(str).str.strip()
 
+        df['full_name'] = df['email'].str.split('@').str[0].str.replace('.', ' ').str.replace('_', ' ').str.title()
+
+        df = df[df['email'].str.contains('@', na=False)]
         df = df[df['email'] != '']
         df = df[df['password'] != '']
-        df = df[df['email'].str.contains('@', na=False)]
 
         if df.empty:
             raise ValueError("No valid users found after cleaning")
 
-        df = df.reset_index(drop=True)
-        logger.info(f"Cleaned {len(df)} users from file {file.filename}")
+        df = df[['email', 'full_name', 'password']].reset_index(drop=True)
+        logger.info(f"Cleaned {len(df)} users from {file_path}")
         return df
 
     except Exception as e:
-        logger.error(f"Error cleaning file: {e}")
+        logger.error(f"Error cleaning file {file_path}: {e}")
         raise ValueError(f"Invalid file format: {str(e)}")
-    
 
-def clean_vacation_records_file(file) -> pd.DataFrame:
+
+def clean_vacation_records_file(file_path: str) -> pd.DataFrame:
     """
-    Cleans vacation file and adds:
-    - 'year': start_date.year
-    - 'days': (end_date - start_date).days + 1
+    return df with ['email', 'start_date', 'end_date', 'year', 'days']
     """
     try:
-        if file.filename.endswith('.xlsx'):
-            df = pd.read_excel(file, header=None)
+        if file_path.endswith('.xlsx'):
+            df = pd.read_excel(file_path, header=None)
         else:
-            df = pd.read_csv(file, header=None, sep=r'\s{2,}', engine='python', on_bad_lines='skip')
+            df = pd.read_csv(
+                file_path,
+                header=None,
+                sep=',',
+                engine='python',
+                on_bad_lines='skip',
+                encoding='utf-8',
+                skipinitialspace=True  
+            )
 
-        if df.empty or df.shape[1] < 3:
+        if df.empty:
+            raise ValueError("File is empty or no data could be parsed")
+
+        if df.shape[1] < 3:
             raise ValueError("File must have at least 3 columns: email, start_date, end_date")
 
-        df = df.iloc[:, :3].copy()
+        df = df.iloc[1:, :3].copy()
+        if df.empty:
+            raise ValueError("No data rows after skipping header")
+
         df.columns = ['email', 'start_date_str', 'end_date_str']
 
-        # Clean email
         df['email'] = df['email'].astype(str).str.strip().str.lower()
 
-        # Parse dates
         def parse_date(date_str):
             date_str = str(date_str).strip()
-            for fmt in (
-                "%A, %B %d, %Y",
+            formats = (
+                "%A, %B %d, %Y",  # 'Friday, August 30, 2019'
                 "%A, %d %B %Y",
                 "%Y-%m-%d",
-                "%d/%m/%Y"
-            ):
+                "%d/%m/%Y",
+                "%d.%m.%Y",
+                "%m/%d/%Y"
+            )
+            for fmt in formats:
                 try:
-                    return datetime.strptime(date_str, fmt).date()
-                except:
+                    return datetime.strptime(date_str, fmt) 
+                except ValueError:
                     continue
             raise ValueError(f"Invalid date: {date_str}")
 
-        df['start_date'] = df['start_date_str'].apply(parse_date)
-        df['end_date'] = df['end_date_str'].apply(parse_date)
+        df['start_date'] = pd.to_datetime(df['start_date_str'].apply(parse_date))
+        df['end_date'] = pd.to_datetime(df['end_date_str'].apply(parse_date))
 
-        # Calculate year and days
-        df['year'] = df['start_date'].apply(lambda d: d.year)
-        df['days'] = (df['end_date'] - df['start_date']).dt.days + 1
+        df['year'] = df['start_date'].dt.year
+        df['days'] = (df['end_date'] - df['start_date']).dt.days + 1 
 
-        # Validate
         if (df['days'] < 1).any():
             raise ValueError("End date must be on or after start date")
 
         df = df[df['email'].str.contains('@', na=False)]
+        df = df[['email', 'start_date', 'end_date', 'year', 'days']]
         df = df.reset_index(drop=True)
 
-        logger.info(f"Cleaned {len(df)} vacation records with year and days")
+        logger.info(f"Cleaned {len(df)} vacation records from {file_path}")
         return df
 
     except Exception as e:
-        logger.error(f"Error cleaning vacation file: {e}")
+        logger.error(f"Error cleaning vacation file {file_path}: {e}")
         raise ValueError(f"Invalid file format: {str(e)}")
-    
-def clean_entitlement_file(file) -> tuple[pd.DataFrame, int]:
+
+def clean_entitlement_file(file_path: str) -> Tuple[pd.DataFrame, int]:
     """
-    Cleans entitlement file:
-    Vacation year 2021
-    Employee Total vacation days
-    user1@rbt.rs 20
-    ...
-    Returns (DataFrame with email/total_days, year)
+    returns : (DataFrame with ['email', 'total_days'], year)
     """
     try:
-        if file.filename.endswith('.xlsx'):
-            df = pd.read_excel(file, header=None)
+        if file_path.endswith('.xlsx'):
+            df = pd.read_excel(file_path, header=None)
         else:
-            df = pd.read_csv(file, header=None, sep=r'\s{2,}', engine='python', on_bad_lines='skip')
+            df = pd.read_csv(
+                file_path,
+                header=None,
+                sep=',',
+                engine='python',
+                on_bad_lines='skip',
+                encoding='utf-8'
+            )
 
         if df.empty or df.shape[1] < 2:
             raise ValueError("File must have at least 2 columns")
 
-        # 1. Extract year from first row
-        first_row = str(df.iloc[0, 0])
-        if not first_row.startswith("Vacation year"):
-            raise ValueError("First row must be 'Vacation year YYYY'")
+        header_cell = str(df.iloc[0, 0]).strip().lower()
+        if not header_cell.startswith("vacation year"):
+            raise ValueError("First row must start with 'Vacation year'")
+
         try:
-            year = int(first_row.split()[-1])
-        except:
-            raise ValueError("Invalid year in first row")
+            year = int(df.iloc[0, 1]) 
+        except (ValueError, TypeError):
+            raise ValueError("Invalid year in first row, second column")
 
-        # 2. Skip first two rows (header)
-        data_df = df.iloc[2:].copy()
-        data_df = data_df.iloc[:, :2]
+        data_df = df.iloc[2:, :2].copy()
+        if data_df.empty:
+            raise ValueError("No data rows found")
+
         data_df.columns = ['email', 'total_days']
+        data_df = data_df.dropna(how='all').reset_index(drop=True)
 
-        # 3. Clean
         data_df['email'] = data_df['email'].astype(str).str.strip().str.lower()
         data_df['total_days'] = pd.to_numeric(data_df['total_days'], errors='coerce')
 
-        # 4. Validate
         if data_df['total_days'].isna().any():
-            raise ValueError("Invalid total_days value")
+            raise ValueError("Some total_days values are not numeric")
         if not data_df['email'].str.contains('@', na=False).all():
-            raise ValueError("Invalid email format")
+            raise ValueError("Some emails are invalid (missing @)")
 
-        data_df = data_df.reset_index(drop=True)
-        logger.info(f"Cleaned {len(data_df)} entitlements for year {year}")
+        logger.info(f"Cleaned {len(data_df)} entitlements for year {year} from {file_path}")
         return data_df, year
 
     except Exception as e:
-        logger.error(f"Error cleaning entitlement file: {e}")
+        logger.error(f"Error cleaning entitlement file {file_path}: {e}")
         raise ValueError(f"Invalid file format: {str(e)}")
+    
+def load_dataframe(file_path: str) -> pd.DataFrame:
+    """
+    Učitava CSV ili XLSX fajl.
+    Podržava: .csv (zarez), .xlsx
+    Vraća: pd.DataFrame (bez header-a)
+    """
+    if file_path.endswith('.xlsx'):
+        return pd.read_excel(file_path, header=None)
+    elif file_path.endswith('.csv'):
+        return pd.read_csv(
+            file_path,
+            header=None,
+            sep=',',
+            engine='python',
+            on_bad_lines='skip'
+        )
+    else:
+        raise ValueError("Unsupported file format. Use .csv or .xlsx")
