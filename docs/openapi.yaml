@@ -1,0 +1,1302 @@
+openapi: 1.0.0
+info:
+  title: Vacation Management System API
+  description: |
+    Comprehensive REST API for managing users, vacation records, entitlements, and bulk imports.
+    
+    ## Features
+    - User management with role-based access control
+    - Vacation record tracking and management
+    - Vacation entitlement management per year
+    - Overlap checking for vacation periods
+    - Vacation summary and statistics
+    - Bulk import functionality for users, vacations, and entitlements
+    
+    ## Authentication
+    All endpoints (except `/health`) require Basic Authentication. Include the `Authorization` header with base64-encoded credentials:
+    ```
+    Authorization: Basic base64(email:password)
+    ```
+    
+    ## Authorization Levels
+    - **Public**: No authentication required
+    - **Authenticated**: Requires valid user credentials
+    - **Admin**: Requires admin role
+    - **Admin or Owner**: Requires admin role OR the user must be accessing their own data
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: velimirovicaleksa001@gmail.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5000
+    description: Development server
+  - url: https://api.example.com
+    description: Production server
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Users
+    description: User management operations
+  - name: Vacation
+    description: Vacation records and entitlements management
+  - name: Import
+    description: Bulk import operations
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Returns the health status of the API. No authentication required.
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessResponse'
+              example:
+                success: true
+                data:
+                  status: healthy
+                error: null
+                status_code: 200
+
+  /users:
+    get:
+      tags:
+        - Users
+      summary: List all users
+      description: |
+        Retrieves a paginated list of users. Supports filtering by role.
+        
+        **Authorization**: Requires authentication. User must be admin or accessing their own data.
+        
+        **Query Parameters**:
+        - `page`: Page number (default: 1)
+        - `per_page`: Items per page (default: 20)
+        - `role`: Optional role name filter
+      operationId: getUsers
+      security:
+        - BasicAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: per_page
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: role
+          in: query
+          description: Filter users by role name
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessResponse'
+              example:
+                success: true
+                data:
+                  - id: 1
+                    email: user@example.com
+                    full_name: John Doe
+                    role_id: 2
+                    created_at: "2025-01-01T10:00:00Z"
+                    updated_at: "2025-01-01T10:00:00Z"
+                error: null
+                status_code: 200
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Users
+      summary: Create a new user
+      description: |
+        Creates a new user account with the provided information.
+        
+        **Authorization**: Requires authentication. User must be admin or accessing their own data.
+        
+        **Validation Rules**:
+        - Email must be valid and unique
+        - Password must be at least 6 characters long
+        - Full name is optional
+      operationId: createUser
+      security:
+        - BasicAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+            examples:
+              basic:
+                summary: Basic user creation
+                value:
+                  email: velimirovicaleksa001@gmail.com
+                  password: aleksa123456
+                  full_name: aleksa velimirovic
+              minimal:
+                summary: Minimal user creation (no full name)
+                value:
+                  email: user@example.com
+                  password: password123
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessResponse'
+              example:
+                success: true
+                data:
+                  id: 1
+                  email: user@example.com
+                  full_name: John Doe
+                  role_id: 2
+                  created_at: "2025-01-01T10:00:00Z"
+                  updated_at: null
+                error: null
+                status_code: 201
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/{user_id}:
+    get:
+      tags:
+        - Users
+      summary: Get user by ID
+      description: |
+        Retrieves detailed information about a specific user by their ID.
+        
+        **Authorization**: Requires authentication. User must be admin or the owner of the account.
+      operationId: getUserById
+      security:
+        - BasicAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: Unique identifier of the user
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: User retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessResponse'
+              example:
+                success: true
+                data:
+                  id: 1
+                  email: user@example.com
+                  full_name: John Doe
+                  role_id: 2
+                  created_at: "2025-01-01T10:00:00Z"
+                  updated_at: "2025-01-01T10:00:00Z"
+                error: null
+                status_code: 200
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    patch:
+      tags:
+        - Users
+      summary: Update user
+      description: |
+        Updates user information. All fields are optional - only provided fields will be updated.
+        
+        **Authorization**: Requires authentication. User must be admin or the owner of the account.
+        
+        **Validation Rules**:
+        - Email must be valid if provided
+        - Password must be at least 6 characters if provided
+      operationId: updateUser
+      security:
+        - BasicAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: Unique identifier of the user
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+            examples:
+              updateEmail:
+                summary: Update email only
+                value:
+                  email: newemail@example.com
+              updatePassword:
+                summary: Update password only
+                value:
+                  password: newpassword123
+              updateFullName:
+                summary: Update full name only
+                value:
+                  full_name: Jane Smith
+              updateAll:
+                summary: Update all fields
+                value:
+                  email: newemail@example.com
+                  password: newpassword123
+                  full_name: Jane Smith
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessResponse'
+              example:
+                success: true
+                data:
+                  id: 1
+                  email: newemail@example.com
+                  full_name: Jane Smith
+                  role_id: 2
+                  created_at: "2025-01-01T10:00:00Z"
+                  updated_at: "2025-01-02T15:30:00Z"
+                error: null
+                status_code: 200
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /vacation/users/{user_id}/summary:
+    get:
+      tags:
+        - Vacation
+      summary: Get vacation summary
+      description: |
+        Retrieves a summary of vacation entitlements and usage for a specific user and year.
+        
+        **Authorization**: Requires authentication. User must be admin or the owner of the account.
+        
+        The summary includes:
+        - Total days entitled for the year
+        - Days used
+        - Days available (remaining)
+        
+        If no year is specified, the current year is used.
+      operationId: getVacationSummary
+      security:
+        - BasicAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: Unique identifier of the user
+          schema:
+            type: integer
+            minimum: 1
+        - name: year
+          in: query
+          description: Year for the vacation summary (defaults to current year)
+          required: false
+          schema:
+            type: integer
+            minimum: 1900
+            maximum: 2100
+            example: 2025
+      responses:
+        '200':
+          description: Vacation summary retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessResponse'
+              example:
+                success: true
+                data:
+                  total_days: 25
+                  used_days: 10
+                  available_days: 15
+                  year: 2025
+                error: null
+                status_code: 200
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /vacation/users/{user_id}/check:
+    post:
+      tags:
+        - Vacation
+      summary: Check vacation period overlap
+      description: |
+        Checks if a proposed vacation period overlaps with existing vacation records for the user.
+        
+        **Authorization**: Requires authentication. User must be admin or the owner of the account.
+        
+        This endpoint is useful before creating a new vacation record to ensure there are no conflicts.
+      operationId: checkVacationOverlap
+      security:
+        - BasicAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: Unique identifier of the user
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckOverlapRequest'
+            examples:
+              noOverlap:
+                summary: Period with no overlap
+                value:
+                  start_date: "2025-07-01"
+                  end_date: "2025-07-05"
+              withOverlap:
+                summary: Period with overlap
+                value:
+                  start_date: "2025-06-15"
+                  end_date: "2025-06-20"
+      responses:
+        '200':
+          description: Overlap check completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessResponse'
+              example:
+                success: true
+                data:
+                  overlap: false
+                  message: No overlap found for the specified period
+                error: null
+                status_code: 200
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /vacation/users/{user_id}/create:
+    post:
+      tags:
+        - Vacation
+      summary: Create vacation record
+      description: |
+        Creates a new vacation record for a user.
+        
+        **Authorization**: Requires authentication. User must be admin or the owner of the account.
+        
+        **Validation Rules**:
+        - End date must be after or equal to start date
+        - The period must not overlap with existing vacation records
+        - The user must have sufficient available vacation days
+        - Note is optional and limited to 500 characters
+        
+        The system automatically calculates the number of days between start and end dates (inclusive).
+      operationId: createVacationRecord
+      security:
+        - BasicAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: Unique identifier of the user
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVacationRequest'
+            examples:
+              summerVacation:
+                summary: Summer vacation
+                value:
+                  start_date: "2025-07-01"
+                  end_date: "2025-07-05"
+                  note: Summer vacation
+              winterVacation:
+                summary: Winter vacation without note
+                value:
+                  start_date: "2025-12-20"
+                  end_date: "2025-12-31"
+      responses:
+        '201':
+          description: Vacation record created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessResponse'
+              example:
+                success: true
+                data:
+                  id: 1
+                  start_date: "2025-07-01"
+                  end_date: "2025-07-05"
+                  days_count: 5
+                  note: Summer vacation
+                  created_at: "2025-01-15T10:00:00Z"
+                error: null
+                status_code: 201
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /vacation/users/{user_id}/entitlements:
+    post:
+      tags:
+        - Vacation
+      summary: Create vacation entitlement
+      description: |
+        Creates or updates a vacation entitlement for a user for a specific year.
+        
+        **Authorization**: Requires authentication. User must be admin or the owner of the account.
+        
+        **Note**: Each user can have only one entitlement per year. If an entitlement already exists for the specified year, it will be updated.
+      operationId: createVacationEntitlement
+      security:
+        - BasicAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: Unique identifier of the user
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEntitlementRequest'
+            examples:
+              standardEntitlement:
+                summary: Standard 25-day entitlement
+                value:
+                  year: 2025
+                  total_days: 25
+              extendedEntitlement:
+                summary: Extended 30-day entitlement
+                value:
+                  year: 2025
+                  total_days: 30
+      responses:
+        '200':
+          description: Entitlement created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessResponse'
+              example:
+                success: true
+                data:
+                  user_id: 1
+                  year: 2025
+                  total_days: 25
+                  created_at: "2025-01-01T10:00:00Z"
+                  updated_at: "2025-01-01T10:00:00Z"
+                error: null
+                status_code: 200
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /vacation/users/{user_id}/records:
+    get:
+      tags:
+        - Vacation
+      summary: Get vacation records
+      description: |
+        Retrieves a paginated list of vacation records for a user within a specified date range.
+        
+        **Authorization**: Requires authentication. User must be admin or the owner of the account.
+        
+        **Query Parameters**:
+        - `from_date`: Start date of the period (required, format: YYYY-MM-DD)
+        - `to_date`: End date of the period (required, format: YYYY-MM-DD)
+        - `page`: Page number (default: 1)
+        - `per_page`: Items per page (default: 20)
+      operationId: getVacationRecords
+      security:
+        - BasicAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: Unique identifier of the user
+          schema:
+            type: integer
+            minimum: 1
+        - name: from_date
+          in: query
+          required: true
+          description: Start date of the period (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+            example: "2025-07-01"
+        - name: to_date
+          in: query
+          required: true
+          description: End date of the period (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+            example: "2025-07-31"
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: per_page
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Vacation records retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessResponse'
+              example:
+                success: true
+                data:
+                  data:
+                    - id: 1
+                      start_date: "2025-07-01"
+                      end_date: "2025-07-05"
+                      days_count: 5
+                      note: Summer vacation
+                      created_at: "2025-01-15T10:00:00Z"
+                    - id: 2
+                      start_date: "2025-07-15"
+                      end_date: "2025-07-20"
+                      days_count: 6
+                      note: null
+                      created_at: "2025-01-20T14:30:00Z"
+                  total: 2
+                  page: 1
+                  per_page: 20
+                  has_next: false
+                  has_prev: false
+                error: null
+                status_code: 200
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /import/users:
+    post:
+      tags:
+        - Import
+      summary: Import users from CSV file
+      description: |
+        Imports multiple users from a CSV file. This endpoint is useful for bulk user creation.
+        
+        **Authorization**: Requires admin privileges.
+        
+        **File Format**:
+        The CSV file should contain columns: email, password, full_name (optional)
+        
+        **Response**:
+        Returns detailed information about the import process including:
+        - Number of successfully imported users
+        - List of errors encountered
+        - Additional metadata
+      operationId: importUsers
+      security:
+        - BasicAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file containing user data
+      responses:
+        '200':
+          description: Import completed (may contain errors)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessResponse'
+              example:
+                success: true
+                data:
+                  success: true
+                  message: "Imported 10 users successfully"
+                  imported: 10
+                  errors: []
+                  details:
+                    total_rows: 10
+                    skipped: 0
+                error: null
+                status_code: 200
+        '400':
+          description: Bad request - file missing or invalid format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              example:
+                success: false
+                data: null
+                error: "File required"
+                status_code: 400
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /import/vacations:
+    post:
+      tags:
+        - Import
+      summary: Import vacation records from CSV file
+      description: |
+        Imports multiple vacation records from a CSV file.
+        
+        **Authorization**: Requires admin privileges.
+        
+        **File Format**:
+        The CSV file should contain columns: user_id, start_date, end_date, note (optional)
+      operationId: importVacations
+      security:
+        - BasicAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file containing vacation record data
+      responses:
+        '200':
+          description: Import completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessResponse'
+              example:
+                success: true
+                data:
+                  success: true
+                  message: "Imported 5 vacation records successfully"
+                  imported: 5
+                  errors: []
+                  details: {}
+                error: null
+                status_code: 200
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /import/entitlements:
+    post:
+      tags:
+        - Import
+      summary: Import vacation entitlements from CSV file
+      description: |
+        Imports multiple vacation entitlements from a CSV file.
+        
+        **Authorization**: Requires admin privileges.
+        
+        **File Format**:
+        The CSV file should contain columns: user_id, year, total_days
+      operationId: importEntitlements
+      security:
+        - BasicAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file containing entitlement data
+      responses:
+        '200':
+          description: Import completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessResponse'
+              example:
+                success: true
+                data:
+                  success: true
+                  message: "Imported 3 entitlements successfully"
+                  imported: 3
+                  errors: []
+                  details: {}
+                error: null
+                status_code: 200
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: |
+        Basic Authentication using email and password.
+        Credentials should be base64-encoded in the format: base64(email:password)
+        Example: For email "user@example.com" and password "pass123", 
+        encode "user@example.com:pass123" to base64.
+
+  schemas:
+    ApiSuccessResponse:
+      type: object
+      required:
+        - success
+        - data
+        - error
+        - status_code
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          description: Response data (structure varies by endpoint)
+        error:
+          type: string
+          nullable: true
+          example: null
+        status_code:
+          type: integer
+          example: 200
+
+    ApiErrorResponse:
+      type: object
+      required:
+        - success
+        - data
+        - error
+        - status_code
+      properties:
+        success:
+          type: boolean
+          example: false
+        data:
+          type: object
+          nullable: true
+          example: null
+        error:
+          type: string
+          description: Error message
+          example: "Validation error: Invalid email format"
+        status_code:
+          type: integer
+          example: 400
+
+    CreateUserRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address (must be unique)
+          example: velimirovicaleksa001@gmail.com
+        password:
+          type: string
+          format: password
+          minLength: 6
+          description: User password (minimum 6 characters)
+          example: aleksa123456
+        full_name:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: User's full name (optional)
+          example: aleksa velimirovic
+
+    UpdateUserRequest:
+      type: object
+      description: All fields are optional. Only provided fields will be updated.
+      properties:
+        email:
+          type: string
+          format: email
+          description: New email address
+          example: newemail@example.com
+        password:
+          type: string
+          format: password
+          minLength: 6
+          description: New password (minimum 6 characters)
+          example: newpassword123
+        full_name:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: New full name
+          example: Jane Smith
+
+    UserResponse:
+      type: object
+      required:
+        - id
+        - email
+        - role_id
+        - created_at
+      properties:
+        id:
+          type: integer
+          description: Unique user identifier
+          example: 1
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        full_name:
+          type: string
+          nullable: true
+          example: John Doe
+        role_id:
+          type: integer
+          description: User's role identifier
+          example: 2
+        created_at:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: "2025-01-01T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last update timestamp
+          example: "2025-01-02T15:30:00Z"
+
+    CreateVacationRequest:
+      type: object
+      required:
+        - start_date
+        - end_date
+      properties:
+        start_date:
+          type: string
+          format: date
+          description: Vacation start date (YYYY-MM-DD)
+          example: "2025-07-01"
+        end_date:
+          type: string
+          format: date
+          description: Vacation end date (YYYY-MM-DD). Must be after or equal to start_date.
+          example: "2025-07-05"
+        note:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Optional note about the vacation
+          example: Summer vacation
+
+    VacationRecordDTO:
+      type: object
+      required:
+        - id
+        - start_date
+        - end_date
+        - days_count
+      properties:
+        id:
+          type: integer
+          description: Unique vacation record identifier
+          example: 1
+        start_date:
+          type: string
+          format: date
+          example: "2025-07-01"
+        end_date:
+          type: string
+          format: date
+          example: "2025-07-05"
+        days_count:
+          type: integer
+          minimum: 1
+          description: Number of vacation days (inclusive of start and end dates)
+          example: 5
+        note:
+          type: string
+          nullable: true
+          description: Optional note about the vacation
+          example: Summer vacation
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Record creation timestamp
+          example: "2025-01-15T10:00:00Z"
+
+    VacationListResponse:
+      type: object
+      required:
+        - data
+        - total
+        - page
+        - per_page
+        - has_next
+        - has_prev
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/VacationRecordDTO'
+        total:
+          type: integer
+          description: Total number of records
+          example: 2
+        page:
+          type: integer
+          description: Current page number
+          example: 1
+        per_page:
+          type: integer
+          description: Items per page
+          example: 20
+        has_next:
+          type: boolean
+          description: Whether there is a next page
+          example: false
+        has_prev:
+          type: boolean
+          description: Whether there is a previous page
+          example: false
+
+    VacationSummaryDTO:
+      type: object
+      required:
+        - total_days
+        - used_days
+        - available_days
+        - year
+      properties:
+        total_days:
+          type: integer
+          description: Total vacation days entitled for the year
+          example: 25
+        used_days:
+          type: integer
+          description: Number of vacation days used
+          example: 10
+        available_days:
+          type: integer
+          minimum: 0
+          description: Number of vacation days remaining
+          example: 15
+        year:
+          type: integer
+          minimum: 1900
+          maximum: 2100
+          description: Year for which the summary is calculated
+          example: 2025
+
+    CreateEntitlementRequest:
+      type: object
+      required:
+        - year
+        - total_days
+      properties:
+        year:
+          type: integer
+          minimum: 1900
+          maximum: 2100
+          description: Year for the entitlement
+          example: 2025
+        total_days:
+          type: integer
+          minimum: 1
+          description: Total vacation days entitled for the year
+          example: 25
+
+    EntitlementDTO:
+      type: object
+      required:
+        - user_id
+        - year
+        - total_days
+      properties:
+        user_id:
+          type: integer
+          description: User identifier
+          example: 1
+        year:
+          type: integer
+          description: Year for the entitlement
+          example: 2025
+        total_days:
+          type: integer
+          description: Total vacation days entitled
+          example: 25
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Entitlement creation timestamp
+          example: "2025-01-01T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last update timestamp
+          example: "2025-01-01T10:00:00Z"
+
+    CheckOverlapRequest:
+      type: object
+      required:
+        - start_date
+        - end_date
+      properties:
+        start_date:
+          type: string
+          format: date
+          description: Start date of the period to check (YYYY-MM-DD)
+          example: "2025-07-01"
+        end_date:
+          type: string
+          format: date
+          description: End date of the period to check (YYYY-MM-DD)
+          example: "2025-07-05"
+
+    CheckOverlapResponse:
+      type: object
+      required:
+        - overlap
+        - message
+      properties:
+        overlap:
+          type: boolean
+          description: Whether the period overlaps with existing vacation records
+          example: false
+        message:
+          type: string
+          maxLength: 200
+          description: Descriptive message about the overlap status
+          example: No overlap found for the specified period
+
+    ImportResult:
+      type: object
+      required:
+        - success
+        - message
+        - imported
+        - errors
+        - details
+      properties:
+        success:
+          type: boolean
+          description: Whether the import was successful overall
+          example: true
+        message:
+          type: string
+          description: Summary message about the import
+          example: "Imported 10 users successfully"
+        imported:
+          type: integer
+          minimum: 0
+          description: Number of successfully imported records
+          example: 10
+        errors:
+          type: array
+          items:
+            type: string
+          description: List of error messages encountered during import
+          example: []
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional metadata about the import process
+          example:
+            total_rows: 10
+            skipped: 0
+
+  responses:
+    BadRequest:
+      description: Bad request - validation error or invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            success: false
+            data: null
+            error: "Validation error: Invalid email format"
+            status_code: 400
+
+    Unauthorized:
+      description: Unauthorized - authentication required or invalid credentials
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            success: false
+            data: null
+            error: "Authorization required. Provide valid Basic Auth credentials (email:password base64 encoded)"
+            status_code: 401
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            success: false
+            data: null
+            error: "You can only access your own data or must be an admin"
+            status_code: 403
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            success: false
+            data: null
+            error: "User not found"
+            status_code: 404
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            success: false
+            data: null
+            error: "Internal server error"
+            status_code: 500
+

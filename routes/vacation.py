@@ -87,8 +87,8 @@ def create_vacation_record(user_id: int, vacation_service: VacationService):
         return ApiResponse.error(str(e), 400)
     except Exception as e:
         vacation_service.session.rollback()
-        logger.error(f"Error while creatint vacation: {e}", exc_info=True)
-        return ApiResponse.error("Error", 500)
+        logger.error(f"Error while creating vacation for user {user_id}: {e}", exc_info=True)
+        return ApiResponse.error("Internal server error", 500)
     
 @bp.route('/users/<int:user_id>/entitlements', methods=['POST'])
 @login_required
