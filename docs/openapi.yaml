@@ -321,47 +321,6 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-    delete:
-      tags:
-        - Users
-      summary: Delete user (soft delete)
-      description: |
-        Soft deletes a user account. The user record is marked as deleted but not removed from the database.
-        
-        **Authorization**: Requires authentication. User must be admin or the owner of the account.
-      operationId: deleteUser
-      security:
-        - BasicAuth: []
-      parameters:
-        - name: user_id
-          in: path
-          required: true
-          description: Unique identifier of the user
-          schema:
-            type: integer
-            minimum: 1
-      responses:
-        '200':
-          description: User deleted successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiSuccessResponse'
-              example:
-                success: true
-                data:
-                  message: User deleted
-                error: null
-                status_code: 200
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
   /vacation/users/{user_id}/summary:
     get:
       tags:

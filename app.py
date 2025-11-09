@@ -27,6 +27,11 @@ def create_app(config_class=env):
     db.init_app(app)
     Migrate(app, db)
 
+    @app.before_request
+    def before_request():
+        from flask import g
+        g.db_session = db.session
+
     app.register_blueprint(vacation_bp)
     app.register_blueprint(users_bp)
     app.register_blueprint(import_bp)

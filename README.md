@@ -21,20 +21,12 @@ pip install -r requirements.txt
 
 Create a `.env` file in the root directory with the following variables:
 
-```env
-DEV_DATABASE_URL=postgresql://username:password@localhost:5432/database_name
-SECRET_KEY=your-secret-key-here
+FLASK_APP=app.py
 FLASK_ENV=development
-UPLOAD_FOLDER=uploads
-```
-
-**Example `.env` file:**
-```env
-DEV_DATABASE_URL=postgresql://postgres:password@localhost:5432/rbt_db
-SECRET_KEY=your-secret-key-change-this-in-production
-FLASK_ENV=development
-UPLOAD_FOLDER=uploads
-```
+DEV_DATABASE_URL=
+PRO_DATABASE_URL=
+SECRET_KEY=supersecretkey
+UPLOAD_FOLDER = uploads
 
 ### 4. Run database migrations
 
@@ -63,7 +55,7 @@ python app.py
 Or using Flask CLI:
 
 ```bash
-flask run
+python -m flask run
 ```
 
 The application will be available at `http://localhost:5000`
@@ -233,4 +225,210 @@ For detailed test documentation, see [tests/README.md](tests/README.md)
 
 - **API Documentation**: See `docs/openapi.yaml` for OpenAPI specification
 - **Database Schema**: See `docs/pgsql-export.sql` for database structure
-- **Test Documentation**: See `tests/README.md` for test suite details    
+- **Test Documentation**: See `tests/README.md` for test suite details
+
+## Git Workflow
+
+This project follows a three-branch Git workflow to ensure code quality and proper testing before deployment:
+
+### Branch Structure
+
+- **`main`**: Production-ready code that has passed all tests and quality checks
+  - Contains stable, tested features
+  - Protected branch - only merges from `qa` branch
+  - All code in `main` has passed comprehensive testing
+
+- **`qa`**: Quality assurance branch containing features ready for testing
+  - Contains complete features that are ready for QA testing
+  - Merges from `dev` branch after feature completion
+  - All features in `qa` should be fully implemented and documented
+
+- **`dev`**: Development branch where active development happens
+  - Developers create feature branches from `dev`
+  - Feature branches are merged back into `dev` after code review
+  - `dev` branch is merged into `qa` when features are complete
+  - `qa` branch is merged into `main` after successful testing
+
+### Workflow Process
+
+1. **Feature Development**:
+   ```bash
+   git checkout dev
+   git pull origin dev
+   git checkout -b feature/your-feature-name
+   # ... make changes ...
+   git commit -m "Add feature: description"
+   git push origin feature/your-feature-name
+   # Create pull request to merge into dev
+   ```
+
+2. **Merge to QA**:
+   ```bash
+   git checkout qa
+   git pull origin qa
+   git merge dev
+   git push origin qa
+   # Run tests and QA checks
+   ```
+
+3. **Merge to Main**:
+   ```bash
+   git checkout main
+   git pull origin main
+   git merge qa
+   git push origin main
+   # Deploy to production
+   ```
+
+### Branch Protection Rules
+
+- `main` branch requires:
+  - All tests must pass
+  - Code review approval
+  - No direct commits (only merges from `qa`)
+
+- `qa` branch requires:
+  - All tests must pass
+  - Code review approval
+  - No direct commits (only merges from `dev`)
+
+## Future Improvements and Roadmap
+
+The following improvements are planned for future development:
+
+### 1. Code Refactoring
+
+- **DTO Class Naming**: Refactor DTO class names for better consistency and clarity
+  - Standardize naming conventions (e.g., `CreateUserRequest` → `UserCreateRequest`)
+  - Ensure all DTOs follow the same naming pattern
+  - Improve DTO organization and structure
+
+### 2. Security Enhancements
+
+- **Rate Limiting**: Implement rate limiting per IP address to prevent abuse
+  - Add rate limiting middleware using Flask-Limiter
+  - Configure limits for different endpoints (e.g., login attempts, API calls)
+  - Implement IP-based throttling to prevent brute force attacks
+  - Add configuration for different rate limits per user role
+
+- **Additional Security Measures**:
+  - Implement JWT tokens for stateless authentication
+  - Add CORS configuration for production
+  - Implement request validation and sanitization
+  - Add security headers (HSTS, CSP, etc.)
+
+### 3. ETL Improvements
+
+- **Enhanced CSV Processing**:
+  - Support more diverse CSV file formats (different delimiters, encodings, etc.)
+  - Improve data validation and error handling
+  - Add support for Excel files (.xlsx, .xls)
+  - Implement data transformation pipelines
+
+- **Distributed Processing**:
+  - Integrate Apache Spark for large-scale data processing
+  - Implement cluster-based processing for bulk imports
+  - Add support for parallel processing of large CSV files
+  - Optimize memory usage for large file imports
+
+- **ETL Pipeline Enhancements**:
+  - Add data quality checks and validation
+  - Implement data transformation rules
+  - Add support for incremental imports
+  - Create ETL monitoring and logging
+
+### 4. Database Performance Optimization
+
+- **Index Creation**:
+  - Add indexes on frequently queried columns:
+    - `year` column in `vacation_records` table
+    - `user_id` in `vacation_records` and `vacation_entitlements`
+    - `email` in `users` table (already unique, but ensure index exists)
+    - `deleted_at` for soft delete queries
+    - Composite indexes for common query patterns
+
+- **Query Optimization**:
+  - Optimize queries with soft delete filters (`deleted_at IS NULL`)
+  - Add partial indexes for active records
+  - Implement query result caching where appropriate
+  - Add database query monitoring and profiling
+
+- **Database Consistency**:
+  - Implement database-level constraints for data integrity
+  - Add foreign key constraints with proper cascade rules
+  - Implement database triggers for audit logging
+  - Add database-level validation rules
+
+### 5. Database-Level Improvements
+
+- **Soft Delete Consistency**:
+  - Standardize soft delete implementation across all tables
+  - Ensure all queries properly filter deleted records
+  - Add database-level constraints to prevent inconsistencies
+  - Implement cascade soft delete for related records
+
+- **Update Consistency**:
+  - Ensure `updated_at` is automatically updated on all tables
+  - Add database triggers for automatic timestamp updates
+  - Implement optimistic locking for concurrent updates
+  - Add version tracking for audit purposes
+
+### 6. Additional Routes and Features
+
+- **New API Endpoints**:
+  - `GET /users/{id}/vacations` - Get all vacations for a user
+  - `GET /vacation/statistics` - Get vacation statistics (admin only)
+  - `POST /vacation/users/{id}/cancel` - Cancel a vacation record
+  - `PATCH /vacation/users/{id}/records/{record_id}` - Update vacation record
+  - `GET /import/history` - Get import history (admin only)
+  - `GET /health/detailed` - Detailed health check with database status
+
+- **Reporting Features**:
+  - Vacation usage reports
+  - User activity reports
+  - Import history and statistics
+  - Export functionality for reports
+
+### 7. Testing Improvements
+
+- **Test Coverage**:
+  - Increase test coverage to 90%+
+  - Add integration tests
+  - Add performance tests
+  - Add security tests
+
+- **Test Infrastructure**:
+  - Set up CI/CD pipeline
+  - Add automated test running on pull requests
+  - Implement test coverage reporting
+  - Add load testing
+
+### 8. Documentation
+
+- **API Documentation**:
+  - Complete OpenAPI specification
+  - Add more examples and use cases
+  - Create API client libraries
+
+- **Developer Documentation**:
+  - Architecture documentation
+  - Database schema documentation
+  - Deployment guides
+  - Contributing guidelines
+
+### Implementation Priority
+
+1. **High Priority**:
+   - Database indexes for performance
+   - Rate limiting for security
+   - DTO naming refactoring
+
+2. **Medium Priority**:
+   - Enhanced CSV processing
+   - Additional API routes
+   - Database consistency improvements
+
+3. **Low Priority**:
+   - Spark integration
+   - Advanced reporting features
+   - Performance optimizations
