@@ -67,7 +67,9 @@ def get_users(user_service: UserService):
         return ApiResponse.success([u.model_dump() for u in users], 200)
     except Exception as e:
         logger.error(f"Error listing users: {e}", exc_info=True)
-        return ApiResponse.error("Internal server error", 500)
+        ##This is retirn  ap ireturn
+        return ApiResponse.error("Internal server errorERER", 50099)
+        
 
 
 @bp.route('/<int:user_id>', methods=['PATCH'])
