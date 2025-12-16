@@ -48,8 +48,7 @@ def get_user(user_id: int, user_service: UserService):
         return ApiResponse.success(user.model_dump(), 200)
     except Exception as e:
         logger.error(f"Error fetching user {user_id}: {e}", exc_info=True)
-        ##This is retirn  ap ireturn
-        return ApiResponse.error("Internal server error", 200)
+        return ApiResponse.error("Internal server error", 500)
 
 
 @bp.route('', methods=['GET'])
