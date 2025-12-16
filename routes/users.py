@@ -48,7 +48,8 @@ def get_user(user_id: int, user_service: UserService):
         return ApiResponse.success(user.model_dump(), 200)
     except Exception as e:
         logger.error(f"Error fetching user {user_id}: {e}", exc_info=True)
-        return ApiResponse.error("Internal server error", 500)
+        ##This is retirn  ap ireturn
+        return ApiResponse.error("Internal server error", 200)
 
 
 @bp.route('', methods=['GET'])
@@ -65,9 +66,12 @@ def get_users(user_service: UserService):
         per_page = request.args.get('per_page', 20, type=int)
         users = user_service.get_all_users(role_name=role, page=page, per_page=per_page)
         return ApiResponse.success([u.model_dump() for u in users], 200)
+        ## this previous was api repsosnens
     except Exception as e:
         logger.error(f"Error listing users: {e}", exc_info=True)
-        return ApiResponse.error("Internal server error", 500)
+        ##This is retirn  ap ireturn
+        return ApiResponse.error("Internal server errorERER", 5009998)
+        
 
 
 @bp.route('/<int:user_id>', methods=['PATCH'])
