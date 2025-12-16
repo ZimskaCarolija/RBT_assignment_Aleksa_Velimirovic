@@ -65,10 +65,11 @@ def get_users(user_service: UserService):
         per_page = request.args.get('per_page', 20, type=int)
         users = user_service.get_all_users(role_name=role, page=page, per_page=per_page)
         return ApiResponse.success([u.model_dump() for u in users], 200)
+        ## this previous was api repsosnens
     except Exception as e:
         logger.error(f"Error listing users: {e}", exc_info=True)
         ##This is retirn  ap ireturn
-        return ApiResponse.error("Internal server errorERER", 50099)
+        return ApiResponse.error("Internal server errorERER", 5009998)
         
 
 
