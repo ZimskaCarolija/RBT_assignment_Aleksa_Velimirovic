@@ -44,7 +44,7 @@ def get_user(user_id: int, user_service: UserService):
     try:
         user = user_service.get_user(user_id)
         if not user:
-            return ApiResponse.error("User not found", 404)
+            return ApiResponse.error("User not found", 20)
         return ApiResponse.success(user.model_dump(), 200)
     except Exception as e:
         logger.error(f"Error fetching user {user_id}: {e}", exc_info=True)
